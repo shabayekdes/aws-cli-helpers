@@ -7,6 +7,8 @@
 - Install AWS CLI v2 (`aws --version`)
 - Configure AWS SSO profiles in `~/.aws/config` (must include `sso_account_id` and `region`)
 - Install `jq` for JSON parsing
+- Install `expect` for file upload functionality (macOS: `brew install expect`)
+- Install `nc` (netcat) for file transfers (usually pre-installed on macOS/Linux)
 
 Example AWS profile (in `~/.aws/config`):
 
@@ -62,6 +64,18 @@ Notes:
   - `ec2 ls-running` — list only running EC2 instances
   - `ec2 session <instance-id>` — start an SSM shell session using `SSM-SessionManagerRunShell`
   - `ec2 port-forward <remote-port> <local-port> <instance-id>` — start SSM port forwarding
+  - `ec2 upload <instance-id> <local-file> [remote-path] [port]` — upload a file to an EC2 instance via SSM port forwarding
+    - **Arguments:**
+      - `<instance-id>` — EC2 instance ID (e.g., `i-0123456789abcdef0`)
+      - `<local-file>` — Path to the local file to upload
+      - `[remote-path]` — (Optional) Remote file path (default: `/home/ec2-user/<filename>`)
+      - `[port]` — (Optional) Port number for transfer (default: random port 50000-59999)
+    - **Features:**
+      - Uses SSM port forwarding for secure file transfer
+      - Automatically creates remote directory if needed
+      - Displays file size and MD5 checksums for verification
+      - Verifies file was successfully uploaded
+      - Cleans up SSM sessions automatically
 
 - `ecs` helper with subcommands:
   - `ecs clusters` — list all ECS clusters
@@ -88,6 +102,9 @@ Notes:
   - `ec2 ls-running`
   - `ec2 session i-0123456789abcdef0`
   - `ec2 port-forward 5432 15432 i-0123456789abcdef0`
+  - `ec2 upload i-0123456789abcdef0 /local/file.txt`
+  - `ec2 upload i-0123456789abcdef0 /local/file.txt /home/ec2-user/file.txt`
+  - `ec2 upload i-0123456789abcdef0 /local/file.txt /home/ec2-user/file.txt 8888`
 - Use ECS helpers as needed, for example:
   - `ecs clusters`
   - `ecs services my-cluster`
@@ -112,6 +129,7 @@ Notes:
 - `ec2 ls` outputs instances data as JSON lines (via `jq -r`), without errors
 - `ec2 session <instance-id>` starts an interactive SSM shell session
 - `ec2 port-forward <remote-port> <local-port> <instance-id>` starts an SSM port forwarding session
+- `ec2 upload <instance-id> <local-file>` uploads a file to the instance and displays verification (file size, MD5 checksums)
 - `ecs clusters` lists all available ECS clusters
 - `ecs services <cluster>` lists services in the specified cluster
 - `ecs tasks <cluster>` displays a formatted table with task ID, status, container, and uptime
@@ -147,13 +165,21 @@ Notes:
   - Ensure system time is synchronized
   - Verify `jq` version supports time functions (jq 1.5+)
 
+- File upload fails
+  - Ensure `expect` is installed (`which expect`)
+  - Ensure `nc` (netcat) is available on both local and remote systems
+  - Verify the instance has SSM agent running and proper IAM permissions
+  - Check that the specified port is not already in use (script uses random port 50000-59999 by default)
+  - Ensure the remote directory path exists or can be created
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ### 7) Repository Structure
 
 - `main.sh` — Entrypoint; exports `AWS_HELPERS_DIR`, loads sessions and EC2/ECS helpers
 - `session.sh` — Session orchestration: profile picker, SSO login, table display, SSM doc ensure
-- `services/ec2.sh` — `ec2` command group: list instances, SSM session, port forwarding
+- `services/ec2.sh` — `ec2` command group: list instances, SSM session, port forwarding, file upload
+- `services/_ec2_upload.sh` — File upload script using Expect for SSM port forwarding transfers
 - `services/ecs.sh` — `ecs` command group: clusters, services, tasks, exec, logs, stop, describe
 - `templates/SessionManagerRunShell.json` — SSM document used for interactive shell sessions
 
