@@ -35,6 +35,34 @@ get_credentials() {
     echo "$response"
 }
 
+# Check if AWS credentials are expired
+check_credentials_expiration() {
+    local profile="$1"
+    local expiration
+
+    # Get the expiration time from AWS credentials
+    expiration=$(aws configure export-credentials --profile "$profile" 2>/dev/null | jq -r '.Expiration // empty')
+
+    # Return 1 if no expiration info (not applicable for some credential types)
+    if [ -z "$expiration" ]; then
+        return 1
+    fi
+
+    # Convert expiration ISO 8601 timestamp to epoch
+    local expiration_epoch
+    local current_epoch
+
+    expiration_epoch=$(date -d "$expiration" +%s 2>/dev/null)
+    current_epoch=$(date +%s)
+
+    # Return 0 if expired, 1 if valid
+    if [ "$expiration_epoch" -lt "$current_epoch" ]; then
+        return 0
+    fi
+
+    return 1
+}
+
 # Create and display table with AWS information
 create_and_display_table() {
     local response="$1"
@@ -272,12 +300,26 @@ aws_session() {
         return 1
     fi
 
-    # Check if already authenticated
+    # Check if already authenticated and not expired
     local response
+    local credentials_valid=false
+
     response=$(aws sts get-caller-identity --profile "$AWS_PROFILE" 2>&1)
 
-    if [ $? -ne 0 ]; then
+    if [ $? -eq 0 ]; then
+        # Credentials exist, check if they're expired
+        if check_credentials_expiration "$AWS_PROFILE"; then
+            printf "%s%s%s\n" "${BOLD_GREEN}" "AWS credentials expired. Initiating SSO login..." "${NC}"
+        else
+            credentials_valid=true
+            printf "%sCredentials are valid and not expired%s\n" "${GREEN}" "${NC}"
+        fi
+    else
         printf "%s%s%s\n" "${BOLD_GREEN}" "AWS credentials not available. Initiating SSO login..." "${NC}"
+    fi
+
+    # If credentials are not valid, perform SSO login
+    if [ "$credentials_valid" = false ]; then
         aws sso login --profile "$AWS_PROFILE"
 
         # Try again after login
