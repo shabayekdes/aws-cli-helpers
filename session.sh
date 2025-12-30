@@ -10,8 +10,6 @@ NC=$'\033[0m' # No Color
 CYAN=$'\033[0;36m'
 GRAY=$'\033[0;90m'
 
-SESSION_MANAGER_TEMPLATE="${AWS_HELPERS_DIR}/templates/SessionManagerRunShell.json"
-
 # Clear the terminal screen
 clear_terminal() {
     reset && clear
@@ -207,26 +205,6 @@ select_profile() {
         "${GREEN}" "${BOLD}" "$AWS_PROFILE" "${NC}" "$AWS_ACCOUNT_ID"
 }
 
-create_ssm_session_manager() {
-    if ! aws ssm describe-document --name "SSM-SessionManagerRunShell" > /dev/null 2>&1; then
-        echo "The SSM session manager document does not exist. Creating it..."
-        echo "file://${SESSION_MANAGER_TEMPLATE}"
-        MESSAGE=$(aws ssm create-document \
-            --name SSM-SessionManagerRunShell \
-            --content "file://${SESSION_MANAGER_TEMPLATE}" \
-            --document-type "Session" \
-            --document-format JSON 2>&1 | grep -q "DocumentAlreadyExists")
-
-        if [ $? -eq 0 ] || echo "$MESSAGE" | grep -q "DocumentAlreadyExists"; then
-            echo "The SSM session manager document is ready"
-        else
-            echo "Failed to create the SSM session manager document"
-            echo "Error: $MESSAGE"
-            exit 1
-        fi
-    fi
-}
-
 aws_session() {
     # Check if jq is installed
     if ! command -v jq > /dev/null 2>&1; then
@@ -334,7 +312,6 @@ aws_session() {
     printf "%sSuccessfully authenticated with profile: %s%s\n" "${GREEN}" "${BOLD}" "${AWS_PROFILE}${NC}"
 
     if [ $? -eq 0 ]; then
-        create_ssm_session_manager
         clear_terminal
         create_and_display_table "$response" "$AWS_REGION"
     else

@@ -22,7 +22,6 @@ ec2() {
         return 1
       fi
       aws ssm start-session \
-        --document-name SSM-SessionManagerRunShell \
         --target "$2"
       ;;
 
