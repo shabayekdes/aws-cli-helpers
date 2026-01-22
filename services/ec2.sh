@@ -70,7 +70,7 @@ Examples:
   ec2 ls
   ec2 ls-running
   ec2 session i-1234567890abcdef0
-  ec2 port-forward localhost 3306 3306 i-1234567890abcdef0
+  ec2 port-forward myinstance.123456789012.us-west-2.rds.amazonaws.com 3306 3306 i-1234567890abcdef0
   ec2 upload i-1234567890abcdef0 /local/file.txt /home/ec2-user/file.txt 8888
 EOF
       return 1

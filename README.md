@@ -63,7 +63,7 @@ Notes:
   - `ec2 ls` — list all EC2 instances (id, name, state)
   - `ec2 ls-running` — list only running EC2 instances
   - `ec2 session <instance-id>` — start an SSM shell session using `SSM-SessionManagerRunShell`
-  - `ec2 port-forward <remote-port> <local-port> <instance-id>` — start SSM port forwarding
+  - `ec2 port-forward <host> <remote-port> <local-port> <instance-id>` — start SSM port forwarding
   - `ec2 upload <instance-id> <local-file> [remote-path] [port]` — upload a file to an EC2 instance via SSM port forwarding
     - **Arguments:**
       - `<instance-id>` — EC2 instance ID (e.g., `i-0123456789abcdef0`)
@@ -101,7 +101,7 @@ Notes:
   - `ec2 ls`
   - `ec2 ls-running`
   - `ec2 session i-0123456789abcdef0`
-  - `ec2 port-forward 5432 15432 i-0123456789abcdef0`
+  - `ec2 port-forward myinstance.123456789012.us-west-2.rds.amazonaws.com 3306 3306 i-0123456789abcdef0`
   - `ec2 upload i-0123456789abcdef0 /local/file.txt`
   - `ec2 upload i-0123456789abcdef0 /local/file.txt /home/ec2-user/file.txt`
   - `ec2 upload i-0123456789abcdef0 /local/file.txt /home/ec2-user/file.txt 8888`
@@ -128,7 +128,7 @@ Notes:
   - Identity ARN and User ID
 - `ec2 ls` outputs instances data as JSON lines (via `jq -r`), without errors
 - `ec2 session <instance-id>` starts an interactive SSM shell session
-- `ec2 port-forward <remote-port> <local-port> <instance-id>` starts an SSM port forwarding session
+- `ec2 port-forward <host> <remote-port> <local-port> <instance-id>` starts an SSM port forwarding session
 - `ec2 upload <instance-id> <local-file>` uploads a file to the instance and displays verification (file size, MD5 checksums)
 - `ecs clusters` lists all available ECS clusters
 - `ecs services <cluster>` lists services in the specified cluster
