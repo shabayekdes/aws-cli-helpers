@@ -54,7 +54,7 @@ ec2() {
       ;;
 
     *)
-      echo "Usage: ec2 {ls|ls-running|session <instance-id>|port-forward <remote-port> <local-port> <instance-id>|upload <terraform-dir|instance-id> <local-file> [remote-path] [port]}"
+      echo "Usage: ec2 {ls|ls-running|session <instance-id>|port-forward <host> <remote-port> <local-port> <instance-id>|upload <terraform-dir|instance-id> <local-file> [remote-path] [port]}"
       return 1
       ;;
   esac
