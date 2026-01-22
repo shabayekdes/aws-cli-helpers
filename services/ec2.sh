@@ -54,7 +54,25 @@ ec2() {
       ;;
 
     *)
-      echo "Usage: ec2 {ls|ls-running|session <instance-id>|port-forward <host> <remote-port> <local-port> <instance-id>|upload <terraform-dir|instance-id> <local-file> [remote-path] [port]}"
+      cat << 'EOF'
+Usage: ec2 <command> [options]
+
+Commands:
+  ls                        List all EC2 instances
+  ls-running                List only running EC2 instances
+  session <instance-id>      Start an SSM session to an instance
+  port-forward <host> <remote-port> <local-port> <instance-id>
+                            Forward a port from instance to local machine
+  upload <instance-id> <local-file> [remote-path] [port]
+                            Upload a file to an instance via SSM
+
+Examples:
+  ec2 ls
+  ec2 ls-running
+  ec2 session i-1234567890abcdef0
+  ec2 port-forward localhost 3306 3306 i-1234567890abcdef0
+  ec2 upload i-1234567890abcdef0 /local/file.txt /home/ec2-user/file.txt 8888
+EOF
       return 1
       ;;
   esac
