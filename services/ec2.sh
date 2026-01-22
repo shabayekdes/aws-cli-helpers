@@ -27,13 +27,13 @@ ec2() {
 
     port-forward)
       if [[ $# -lt 4 ]]; then
-        echo "Usage: ec2 port-forward <remote-port> <local-port> <instance-id>"
+        echo "Usage: ec2 port-forward <host> <remote-port> <local-port> <instance-id>"
         return 1
       fi
       aws ssm start-session \
-        --document-name AWS-StartPortForwardingSession \
-        --parameters "{\"portNumber\":[\"$2\"], \"localPortNumber\":[\"$3\"]}" \
-        --target "$4"
+        --document-name AWS-StartPortForwardingSessionToRemoteHost \
+        --parameters "{\"host\":[\"$2\"], \"portNumber\":[\"$3\"], \"localPortNumber\":[\"$4\"]}" \
+        --target "$5"
       ;;
 
     upload)
