@@ -129,11 +129,12 @@ Notes:
 
 ### 5) Verification Steps (Success Criteria)
 
-- Running `aws_session` shows a bordered table with:
+- Running `aws_session` shows a table with:
   - Correct AWS Account (formatted `XXXX-XXXX-XXXX`)
   - Selected AWS Profile
   - Current Region
-  - Identity ARN and User ID
+  - Identity ARN
+  - User ID
 - `ec2 ls` outputs instances data as JSON lines (via `jq -r`), without errors
 - `ec2 session <instance-id>` starts an interactive SSM shell session
 - `ec2 port-forward <remote-port> <local-port> <instance-id>` forwards from the EC2 instance itself

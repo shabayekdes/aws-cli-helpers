@@ -61,7 +61,7 @@ check_credentials_expiration() {
     return 1
 }
 
-# Create and display table with AWS information
+# Create and display table with AWS information using column -t
 create_and_display_table() {
     local response="$1"
     local current_region="$2"
@@ -80,74 +80,27 @@ create_and_display_table() {
     # Format account ID as XXXX-XXXX-XXXX
     local formatted_account_id="${aws_account_id:0:4}-${aws_account_id:4:4}-${aws_account_id:8:4}"
 
-    # Table dimensions
-    local col1_width=18
-    local col2_width=110
-    local total_inner_width=$((col1_width + col2_width + 2))
+    # Print header
+    printf "\n%s━━━ AWS Session Information ━━━%s\n\n" "${BOLD_GREEN}" "${NC}"
 
-    # Helper function to create a line of characters
-    create_line() {
-        local char="$1"
-        local width="$2"
-        local i=0
-        while [ $i -lt "$width" ]; do
-            printf "%s" "$char"
-            i=$((i + 1))
-        done
-    }
+    # Build table data, pipe through column -t, then colorize with sed
+    {
+        printf "Info|Value\n"
+        printf "────────────|────────────────────────────────────────────────────────\n"
+        printf "Account|%s\n" "$formatted_account_id"
+        printf "Profile|%s\n" "$aws_profile"
+        printf "Region|%s\n" "$current_region"
+        printf "Identity ARN|%s\n" "$aws_arn"
+        printf "User ID|%s\n" "$user_id"
+    } | column -t -s '|' | sed \
+        -e "1s/.*/${BOLD}&${NC}/" \
+        -e "s/\(Account[[:space:]]*\)\(.*\)/\1${RED}\2${NC}/" \
+        -e "s/\(Profile[[:space:]]*\)\(.*\)/\1${BLUE}\2${NC}/" \
+        -e "s/\(Region[[:space:]]*\)\(.*\)/\1${CYAN}\2${NC}/" \
+        -e "s/\(Identity ARN[[:space:]]*\)\(.*\)/\1${RED}\2${NC}/" \
+        -e "s/\(User ID[[:space:]]*\)\(.*\)/\1${GREEN}\2${NC}/"
 
-    # Top border
-    printf "%s╭" "${BOLD_GREEN}"
-    create_line "─" "$total_inner_width"
-    printf "╮%s\n" "${NC}"
-
-    # Header row
-    local header_col2_width=$((col2_width - 3))
-    printf "%s│%s %-${col1_width}s %s│ %-${header_col2_width}s %s│%s\n" \
-        "${BOLD_GREEN}" "${BOLD_GREEN}" "Info" "${BOLD_GREEN}" \
-        "Value" "${BOLD_GREEN}" "${NC}"
-
-    # Header separator
-    printf "%s├" "${BOLD_GREEN}"
-    create_line "─" "$total_inner_width"
-    printf "┤%s\n" "${NC}"
-
-    # Data rows
-    print_table_row "Account" "$RED$formatted_account_id$NC" "$col1_width" "$col2_width"
-    print_table_row "Profile" "$BLUE$aws_profile$NC" "$col1_width" "$col2_width"
-    print_table_row "Region" "$CYAN$current_region$NC" "$col1_width" "$col2_width"
-    print_table_row "Identity ARN" "$RED$aws_arn$NC" "$col1_width" "$col2_width"
-    print_table_row "User ID" "$user_id" "$col1_width" "$col2_width"
-
-    # Bottom border
-    printf "%s╰" "${BOLD_GREEN}"
-    create_line "─" "$total_inner_width"
-    printf "╯%s\n" "${NC}"
-}
-
-# Helper function to print table rows
-print_table_row() {
-    local label="$1"
-    local value="$2"
-    local col1_width="$3"
-    local col2_width="$4"
-
-    # Strip ANSI color codes from value to get true length
-    local value_clean=$(echo "$value" | sed 's/\x1b\[[0-9;]*m//g')
-    local value_len=${#value_clean}
-
-    # Calculate padding needed for value column
-    local padding=$((col2_width - value_len - 2))
-
-    # Ensure minimum padding
-    if [ $padding -lt 0 ]; then
-        padding=0
-    fi
-
-    # Print row with proper alignment
-    printf "%s│%s %-${col1_width}s %s│ %s%${padding}s%s│%s\n" \
-        "${BOLD_GREEN}" "${BOLD_GREEN}" "$label" "${BOLD_GREEN}" \
-        "$value" "" "${BOLD_GREEN}" "${NC}"
+    printf "\n%s━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%s\n\n" "${BOLD_GREEN}" "${NC}"
 }
 
 select_profile() {
@@ -168,15 +121,23 @@ select_profile() {
         return 1
     fi
 
-    printf "\n%sAvailable AWS Profiles:%s\n" "${BOLD_GREEN}" "${NC}"
+    printf "\n%sAvailable AWS Profiles:%s\n\n" "${BOLD_GREEN}" "${NC}"
 
-    local line_num=1
-    while IFS=':' read -r account profile region; do
-        printf "  %s[%d]%s %s (Account: %s, Region: %s)\n" \
-            "${BLUE}" "$line_num" "${NC}" \
-            "$profile" "$account" "$region"
-        line_num=$((line_num + 1))
-    done < "$temp_map"
+    # Build profile table, pipe through column -t, then colorize with sed
+    {
+        printf "#|Profile|Account|Region\n"
+        printf "─|───────────────────────────|──────────────|──────────────\n"
+
+        local line_num=1
+        while IFS=':' read -r account profile region; do
+            printf "[%d]|%s|%s|%s\n" "$line_num" "$profile" "$account" "$region"
+            line_num=$((line_num + 1))
+        done < "$temp_map"
+    } | column -t -s '|' | sed \
+        -e "1s/.*/${BOLD}&${NC}/" \
+        -e "s/\(\[[[0-9]*\]\)/${BLUE}\1${NC}/g"
+
+    printf "\n"
 
     printf "\n%sSelect a profile [1-%d]: %s" "${BOLD}" "$count" "${NC}"
     read -r choice
