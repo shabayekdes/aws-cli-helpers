@@ -58,13 +58,37 @@ ec2() {
 
     port-forward)
       if [[ $# -lt 4 ]]; then
-        echo "Usage: ec2 port-forward <host> <remote-port> <local-port> <instance-id>"
+        echo "Usage: ec2 port-forward <remote-port> <local-port> <instance-id> [host]"
+        echo ""
+        echo "Examples:"
+        echo "  # Forward to EC2 instance itself (e.g., web server)"
+        echo "  ec2 port-forward 8080 8080 i-1234567890abcdef0"
+        echo ""
+        echo "  # Forward to remote service through EC2 (e.g., RDS)"
+        echo "  ec2 port-forward 3306 3306 i-1234567890abcdef0 mydb.123.us-west-2.rds.amazonaws.com"
         return 1
       fi
-      aws ssm start-session \
-        --document-name AWS-StartPortForwardingSessionToRemoteHost \
-        --parameters "{\"host\":[\"$2\"], \"portNumber\":[\"$3\"], \"localPortNumber\":[\"$4\"]}" \
-        --target "$5"
+      
+      local remote_port="$2"
+      local local_port="$3"
+      local instance_id="$4"
+      local host="$5"
+      
+      if [[ -z "$host" ]]; then
+        # No host provided: forward to EC2 instance itself
+        echo "Forwarding localhost:$local_port -> EC2 instance:$remote_port"
+        aws ssm start-session \
+          --document-name AWS-StartPortForwardingSession \
+          --parameters "{\"portNumber\":[\"$remote_port\"], \"localPortNumber\":[\"$local_port\"]}" \
+          --target "$instance_id"
+      else
+        # Host provided: forward to remote host through EC2
+        echo "Forwarding localhost:$local_port -> $host:$remote_port (via EC2 instance)"
+        aws ssm start-session \
+          --document-name AWS-StartPortForwardingSessionToRemoteHost \
+          --parameters "{\"host\":[\"$host\"], \"portNumber\":[\"$remote_port\"], \"localPortNumber\":[\"$local_port\"]}" \
+          --target "$instance_id"
+      fi
       ;;
 
     upload)
@@ -95,8 +119,10 @@ Commands:
   session <instance-id>     Start an SSM session to an instance
   run <instance-id>         Start (run) an EC2 instance
   stop <instance-id>        Stop an EC2 instance
-  port-forward <host> <remote-port> <local-port> <instance-id>
-                            Forward a port from instance to local machine
+  port-forward <remote-port> <local-port> <instance-id> [host]
+                            Forward a port to local machine
+                            - Without host: forwards from EC2 instance itself
+                            - With host: forwards from remote service through EC2
   upload <instance-id> <local-file> [remote-path] [port]
                             Upload a file to an instance via SSM
 
@@ -107,7 +133,8 @@ Examples:
   ec2 session i-1234567890abcdef0
   ec2 run i-1234567890abcdef0
   ec2 stop i-1234567890abcdef0
-  ec2 port-forward myinstance.123456789012.us-west-2.rds.amazonaws.com 3306 3306 i-1234567890abcdef0
+  ec2 port-forward 8080 8080 i-1234567890abcdef0
+  ec2 port-forward 3306 3306 i-1234567890abcdef0 mydb.123456789012.us-west-2.rds.amazonaws.com
   ec2 upload i-1234567890abcdef0 /local/file.txt /home/ec2-user/file.txt 8888
 EOF
       return 1
