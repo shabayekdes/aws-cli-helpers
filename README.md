@@ -52,7 +52,6 @@ Notes:
 -  `aws_session`
   - Interactively select an AWS SSO profile (parses `~/.aws/config` for `sso_account_id` and `region`)
   - Performs SSO login if not already authenticated
-  - Ensures the SSM session document `SSM-SessionManagerRunShell` exists (creates if missing using `templates/SessionManagerRunShell.json`)
   - Clears the terminal and displays account/profile/region in a styled table
   - Sets a helpful prompt showing `user@account:profile:region`
 
@@ -62,7 +61,10 @@ Notes:
 - `ec2` helper with subcommands:
   - `ec2 ls` — list all EC2 instances (id, name, state)
   - `ec2 ls-running` — list only running EC2 instances
-  - `ec2 session <instance-id>` — start an SSM shell session using `SSM-SessionManagerRunShell`
+  - `ec2 ls-stopped` — list only stopped EC2 instances
+  - `ec2 session <instance-id>` — start an SSM shell session
+  - `ec2 run <instance-id>` — start (run) an EC2 instance
+  - `ec2 stop <instance-id>` — stop an EC2 instance
   - `ec2 port-forward <host> <remote-port> <local-port> <instance-id>` — start SSM port forwarding
   - `ec2 upload <instance-id> <local-file> [remote-path] [port]` — upload a file to an EC2 instance via SSM port forwarding
     - **Arguments:**
@@ -100,7 +102,10 @@ Notes:
 - Use EC2 helpers as needed, for example:
   - `ec2 ls`
   - `ec2 ls-running`
+  - `ec2 ls-stopped`
   - `ec2 session i-0123456789abcdef0`
+  - `ec2 run i-0123456789abcdef0`
+  - `ec2 stop i-0123456789abcdef0`
   - `ec2 port-forward myinstance.123456789012.us-west-2.rds.amazonaws.com 3306 3306 i-0123456789abcdef0`
   - `ec2 upload i-0123456789abcdef0 /local/file.txt`
   - `ec2 upload i-0123456789abcdef0 /local/file.txt /home/ec2-user/file.txt`
@@ -154,7 +159,6 @@ Notes:
 - SSM session errors
   - Ensure the instance has SSM agent installed and proper IAM role
   - Ensure network/VPC endpoints allow SSM
-  - Confirm `SSM-SessionManagerRunShell` exists (it is auto-created by `aws_session` if missing)
 
 - ECS exec command fails
   - Ensure ECS Exec is enabled on the service (`enableExecuteCommand: true`)
@@ -177,11 +181,10 @@ Notes:
 ### 7) Repository Structure
 
 - `main.sh` — Entrypoint; exports `AWS_HELPERS_DIR`, loads sessions and EC2/ECS helpers
-- `session.sh` — Session orchestration: profile picker, SSO login, table display, SSM doc ensure
+- `session.sh` — Session orchestration: profile picker, SSO login, table display
 - `services/ec2.sh` — `ec2` command group: list instances, SSM session, port forwarding, file upload
 - `services/_ec2_upload.sh` — File upload script using Expect for SSM port forwarding transfers
 - `services/ecs.sh` — `ecs` command group: clusters, services, tasks, exec, logs, stop, describe
-- `templates/SessionManagerRunShell.json` — SSM document used for interactive shell sessions
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
